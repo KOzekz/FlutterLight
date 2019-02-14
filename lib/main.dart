@@ -123,26 +123,96 @@ class _MyHomePageState extends State<MyHomePage> {
         //   // the App.build method, and use it to set our appbar title.
         //   title: Text(widget.title),
         // ),
-        body: new Center(
+        body: new SingleChildScrollView(
           child: new Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.max,
               children: <Widget>[
-                new Text('Device has flash: $_hasFlash\n Flash is on: $_isOn'),
-                new Slider(
-                    value: _intensity,
-                    onChanged: _isOn ? _intensityChanged : null),
-                new RaisedButton(
-                    onPressed: () async =>
-                        await Lamp.flash(new Duration(seconds: 2)),
-                    child: new Text("Flash for 2 seconds")),
-                _filePath == null
-                    ? new Text('No file selected.')
-                    : new Text('Path' + _filePath),
-                new RaisedButton(
-                    onPressed: getFilePath, child: new Text("Browse")),
-                new RaisedButton(
-                    onPressed: discoFlash,
-                    child: new Text(_isOn ? "Playing" : "Play"))
+                Card(
+                  elevation: 12,
+                  margin: EdgeInsets.fromLTRB(12, 24, 12, 12),
+                  child: Container(
+                    padding: EdgeInsets.all(12),
+                    child: Column(
+                      children: <Widget>[
+                        const ListTile(
+                            leading: Icon(Icons.flash_auto),
+                            title:
+                                Text('Basic', style: TextStyle(fontSize: 24)),
+                            subtitle: Text('Flasher.')),
+                        new Text(
+                            'Device has flash: $_hasFlash\n Flash is on: $_isOn'),
+                        new Slider(
+                            value: _intensity,
+                            onChanged: _isOn ? _intensityChanged : null),
+                        new RaisedButton(
+                            onPressed: () async =>
+                                await Lamp.flash(new Duration(seconds: 2)),
+                            child: new Text("Flash for 2 seconds")),
+                      ],
+                    ),
+                  ),
+                ),
+                Card(
+                  elevation: 12,
+                  margin: EdgeInsets.fromLTRB(12, 24, 12, 24),
+                  child: Container(
+                    padding: EdgeInsets.all(12),
+                    child: Column(
+                      children: <Widget>[
+                        ListTile(
+                            leading: Icon(Icons.playlist_add),
+                            title:
+                                Text('Upload', style: TextStyle(fontSize: 24)),
+                            subtitle: Text('Play Upload Song.')),
+                        _filePath == null
+                            ? new Text('No file selected.')
+                            : new Text('Path' + _filePath),
+                        new RaisedButton(
+                            onPressed: getFilePath, child: new Text("Browse")),
+                        new RaisedButton(
+                            onPressed: discoFlash,
+                            child: Row(
+                              children: <Widget>[
+                                Icon(Icons.play_circle_filled),
+                                new Text(_isOn ? " Playing" : " Play")
+                              ],
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                            ))
+                      ],
+                    ),
+                  ),
+                ),
+                Card(
+                  elevation: 12,
+                  margin: EdgeInsets.fromLTRB(12, 12, 12, 24),
+                  child: Container(
+                    padding: EdgeInsets.all(12),
+                    child: Column(
+                      children: <Widget>[
+                        const ListTile(
+                            leading: Icon(Icons.record_voice_over),
+                            title:
+                                Text('Record', style: TextStyle(fontSize: 24)),
+                            subtitle: Text('Recording Artist.')),
+                        new RaisedButton(
+                            onPressed: singFlash,
+                            child: Row(
+                              children: <Widget>[
+                                Icon(Icons.fiber_manual_record),
+                                new Text(_isOn
+                                    ? " Recording ..."
+                                    : " Start Recording")
+                              ],
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                            ))
+                      ],
+                    ),
+                  ),
+                ),
               ]),
         ),
         floatingActionButton: new FloatingActionButton(
@@ -184,13 +254,29 @@ class _MyHomePageState extends State<MyHomePage> {
       _isOn = true;
     });
     int millis = Random().nextInt(600) + 100;
-    int delayMillis = Random().nextInt(500);
+    int delayMillis = Random().nextInt(500) + 300;
     onFlash(milliseconds: millis).then((value) {
       Future.delayed(
           Duration(microseconds: delayMillis),
           () => duration - millis >= 0
               ? discoFlash(duration: duration - millis)
               : _turnFlashAMoment(milliseconds: duration)());
+    });
+  }
+
+  singFlash({howmany = 3}) async {
+    if (!_isOn && howmany != 3) return;
+    setState(() {
+      _isOn = true;
+    });
+    int millis = Random().nextInt(500) + 300;
+    int delayMillis = Random().nextInt(300) + 100;
+    onFlash(milliseconds: millis).then((value) {
+      Future.delayed(
+          Duration(milliseconds: delayMillis),
+          () => howmany - 2 > 0
+              ? singFlash(howmany: howmany - 1)
+              : _turnFlashAMoment(milliseconds: millis)());
     });
   }
 
