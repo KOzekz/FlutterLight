@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:lamp/lamp.dart';
 import 'dart:async';
-// import 'package:file_picker/file_picker.dart';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lamp/lamp.dart';
+import 'dart:math';
 
 void main() => runApp(MyApp());
 
@@ -13,17 +15,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primaryColor: Colors.deepPurple[100]
-      ),
+          // This is the theme of your application.
+          //
+          // Try running your application with "flutter run". You'll see the
+          // application has a blue toolbar. Then, without quitting the app, try
+          // changing the primarySwatch below to Colors.green and then invoke
+          // "hot reload" (press "r" in the console where you ran "flutter run",
+          // or simply save your changes to "hot reload" in a Flutter IDE).
+          // Notice that the counter didn't reset back to zero; the application
+          // is not restarted.
+          primaryColor: Colors.deepPurple[100]),
       home: MyHomePage(title: 'Home Page'),
     );
   }
@@ -124,25 +125,49 @@ class _MyHomePageState extends State<MyHomePage> {
         // ),
         body: new Center(
           child: new Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-            new Text('Device has flash: $_hasFlash\n Flash is on: $_isOn'),
-            new Slider(value: _intensity, onChanged: _isOn ? _intensityChanged : null),
-            new RaisedButton(onPressed: () async => await Lamp.flash(new Duration(seconds: 2)), child:  new Text("Flash for 2 seconds")),
-            _filePath == null
-            ? new Text('No file selected.')
-            : new Text('Path' + _filePath),
-            new RaisedButton(onPressed: getFilePath, child:  new Text("Browse")),
-            new RaisedButton(onPressed: () async => await Lamp.flash(new Duration(seconds: 2)), child:  new Text("Play"))
-          ]),
+                new Text('Device has flash: $_hasFlash\n Flash is on: $_isOn'),
+                new Slider(
+                    value: _intensity,
+                    onChanged: _isOn ? _intensityChanged : null),
+                new RaisedButton(
+                    onPressed: () async =>
+                        await Lamp.flash(new Duration(seconds: 2)),
+                    child: new Text("Flash for 2 seconds")),
+                _filePath == null
+                    ? new Text('No file selected.')
+                    : new Text('Path' + _filePath),
+                new RaisedButton(
+                    onPressed: getFilePath, child: new Text("Browse")),
+                new RaisedButton(
+                    onPressed: discoFlash,
+                    child: new Text(_isOn ? "Playing" : "Play"))
+              ]),
         ),
         floatingActionButton: new FloatingActionButton(
-          child: new Icon(_isOn ? Icons.flash_off : Icons.flash_on),
-          onPressed: _turnFlash),
+            child: new Icon(_isOn ? Icons.flash_off : Icons.flash_on),
+            onPressed: _turnFlash),
       ),
     );
   }
 
+  Future onFlash({seconds = 0, milliseconds = 0}) async {
+    return await Lamp.flash(
+        new Duration(seconds: seconds, microseconds: milliseconds));
+  }
+
+  _turnFlashAMoment({seconds = 0, milliseconds = 0}) => () async {
+        setState(() {
+          _isOn = true;
+        });
+
+        onFlash(seconds: seconds, milliseconds: milliseconds).then((value) {
+          setState(() {
+            _isOn = false;
+          });
+        });
+      };
   bool _hasFlash = false;
   bool _isOn = false;
   double _intensity = 1.0;
@@ -153,39 +178,58 @@ class _MyHomePageState extends State<MyHomePage> {
     initPlatformState();
   }
 
+  discoFlash({duration = 20000}) async {
+    if (!_isOn && duration != 20000) return;
+    setState(() {
+      _isOn = true;
+    });
+    int millis = Random().nextInt(600) + 100;
+    int delayMillis = Random().nextInt(500);
+    onFlash(milliseconds: millis).then((value) {
+      Future.delayed(
+          Duration(microseconds: delayMillis),
+          () => duration - millis >= 0
+              ? discoFlash(duration: duration - millis)
+              : _turnFlashAMoment(milliseconds: duration)());
+    });
+  }
+
   initPlatformState() async {
     bool hasFlash = await Lamp.hasLamp;
     print("Device has flash ? $hasFlash");
-    setState(() { _hasFlash = hasFlash; });
+    setState(() {
+      _hasFlash = hasFlash;
+    });
   }
 
   Future _turnFlash() async {
     _isOn ? Lamp.turnOff() : Lamp.turnOn(intensity: _intensity);
     var f = await Lamp.hasLamp;
-    setState((){
+    setState(() {
       _hasFlash = f;
       _isOn = !_isOn;
     });
   }
 
   _intensityChanged(double intensity) {
-    Lamp.turnOn(intensity : intensity);
-    setState((){
+    Lamp.turnOn(intensity: intensity);
+    setState(() {
       _intensity = intensity;
     });
   }
 
   void getFilePath() async {
-  //  try {
-  //     String filePath = await FilePicker.getFilePath(type: FileType.ANY);
-  //     if (filePath == '') {
-  //       return;
-  //     }
-  //     print("File path: " + filePath);
-  //     setState((){this._filePath = filePath;});
-  //   } on PlatformException catch (e) {
-  //     print("Error while picking the file: " + e.toString());
-  //   }
+    try {
+      String filePath = await FilePicker.getFilePath(type: FileType.ANY);
+      if (filePath == '') {
+        return;
+      }
+      print("File path: " + filePath);
+      setState(() {
+        this._filePath = filePath;
+      });
+    } on PlatformException catch (e) {
+      print("Error while picking the file: " + e.toString());
+    }
   }
-
 }
